@@ -2,7 +2,7 @@ package co.com.example.http.service
 
 import cats.effect.IO
 import co.com.example.http.HttpService
-import org.http4s.{HttpApp, HttpRoutes, Response, ResponseCookie}
+import org.http4s.{ HttpRoutes, ResponseCookie}
 import org.http4s.dsl.io._
 
 class HelloHttpService extends HttpService {
