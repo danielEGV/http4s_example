@@ -14,7 +14,7 @@ object UserRegistrationHttpService {
   final case class UserRegistrationRsp(id: String, email: String)
 }
 
-class UserRegistrationHttpService extends HttpService {
+class UserRegistrationHttpService extends HttpService[IO] {
   override def service: HttpRoutes[IO] =
       as[User] { user =>
         HttpRoutes.of[IO] {

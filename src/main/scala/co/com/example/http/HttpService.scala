@@ -1,19 +1,18 @@
 package co.com.example.http
 
 import cats.data.{Kleisli, OptionT}
-import cats.Monad
-import cats.effect.IO
-import cats.implicits.toFunctorOps
+import cats.{Functor, MonadThrow}
+import cats.implicits._
 import org.http4s._
 import org.typelevel.ci.CIStringSyntax
 
-trait HttpService {
-  def service: HttpRoutes[IO]
+trait HttpService[F[_]] {
+  def service: HttpRoutes[F]
 
-  def addCookie[F[_]: Monad](cookie: ResponseCookie)(rsp: F[Response[F]]): F[Response[F]] =
+  def addCookie(cookie: ResponseCookie)(rsp: F[Response[F]])(implicit functor: Functor[F]): F[Response[F]] =
     rsp.map(_.addCookie(cookie))
 
-  def responseWithHeader(header: Header.ToRaw)(service: HttpRoutes[IO]): HttpRoutes[IO] = Kleisli { req =>
+  def responseWithHeader(header: Header.ToRaw)(service: HttpRoutes[F])(implicit functor: Functor[F]): HttpRoutes[F] = Kleisli { req =>
     service(req).map {
       case Status.Successful(rsp) =>
         rsp.putHeaders(header)
@@ -22,17 +21,20 @@ trait HttpService {
     }
   }
 
-  def extractCardNumberHeaderV2(serviceF: Option[String] => HttpRoutes[IO]): HttpRoutes[IO] = Kleisli { req =>
+  def extractCardNumberHeaderV2(serviceF: Option[String] => HttpRoutes[F]): HttpRoutes[F] = Kleisli { req =>
     serviceF
       .apply(req.headers.get(ci"card-number").map(_.head.value))
       .apply(req)
   }
 
-  def extractCardNumberHeader[F[_]: Monad](req: Request[F])(f: Option[String] => F[Response[F]]): F[Response[F]] =
+  def extractCardNumberHeader(req: Request[F])(f: Option[String] => F[Response[F]]): F[Response[F]] =
     f(req.headers.get(ci"card-number").map(_.head.value))
 
   //Initial, need to be refactored
-  def as[T](f: T => HttpRoutes[IO])(implicit entityDecoder: EntityDecoder[IO, T]): HttpRoutes[IO] = Kleisli { req =>
+  def as[T](f: T => HttpRoutes[F])(
+    implicit monadThrow: MonadThrow[F],
+    entityDecoder: EntityDecoder[F, T]
+  ): HttpRoutes[F] = Kleisli { req =>
     OptionT(
       for {
         t <- req.as[T]
@@ -42,7 +44,10 @@ trait HttpService {
   }
 
   //Initial, need to be refactored
-  def asV2[T](req: Request[IO])(f: T => IO[Response[IO]])(implicit entityDecoder: EntityDecoder[IO, T]): IO[Response[IO]] =
+  def asV2[T](req: Request[F])(f: T => F[Response[F]])(
+    implicit monadThrow: MonadThrow[F],
+    entityDecoder: EntityDecoder[F, T]
+  ): F[Response[F]] =
     for {
       t <- req.as[T]
       route <- f(t)

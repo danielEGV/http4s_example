@@ -14,7 +14,7 @@ object UserRegistrationV2HttpService {
   final case class UserRegistrationRsp(id: String, email: String)
 }
 
-class UserRegistrationV2HttpService extends HttpService {
+class UserRegistrationV2HttpService extends HttpService[IO] {
   override def service: HttpRoutes[IO] =
     HttpRoutes.of[IO] {
         case req @ POST -> Root / "userV2" =>

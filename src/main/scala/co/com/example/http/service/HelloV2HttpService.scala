@@ -2,13 +2,13 @@ package co.com.example.http.service
 
 import cats.effect.IO
 import co.com.example.http.HttpService
-import org.http4s.{Header, HttpApp, HttpRoutes}
+import org.http4s.{Header, HttpRoutes}
 import org.http4s.dsl.io._
 import org.typelevel.ci.CIStringSyntax
 
 import java.util.UUID
 
-class HelloV2HttpService extends HttpService {
+class HelloV2HttpService extends HttpService[IO] {
 
   override def service: HttpRoutes[IO] =
     extractCardNumberHeaderV2 { cardNumber =>
